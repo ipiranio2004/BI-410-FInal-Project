@@ -1,0 +1,187 @@
+---
+title: "LitReview_and_Workflow"
+output: html_document
+date: "2025-11-14"
+Bibliography: "BibTex_references.bib"
+---
+
+# Literature Review
+
+Rising global temperatures are forcing the Cascade region of Oregon into a Mediterranean climate where arid, hot summers dry out local vegetation and make the environment susceptible to intense fires. (Halofsky et al., 2020) Non-native species such as Rumex acetosella, Hypericum perforatum, and Senecio vulgaris are not fire adapted which makes them more likely to burn at a fast rate. When grown clustered together, continuous fuel is left for potential fires to burn through. According to research done at the HJ Andrews Experimental Forest, the 2023 Lookout Fire burned roughly 25,659 acres of fuel. Although the fire was not man-made, the combination of changing climate and continuous fuel gave way to one of the largest recent fires in the region. As described by generations of Traditional Ecological Knowledge, many native plant species like camas and oak trees are fire resistant and subsequently promote the fire cycle. Fire suppression culture has been the cause of countless wildfires, but native species regeneration could be the key to mitigating that risk as well as promoting biodiversity.
+
+HJ Andrews experimental forest houses decades of data surrounding old growth forests, meadows, species interactions, phenology, and many more areas of study. Raw data was collected by Dr. Lauren Ponisio and her lab team between the years 2022 and 2025. Observations were collected into two datasets: veg.Rdata (plant species) and spec_net.Rdata (pollinator species) which we will be using to analyze our hypothesis.
+
+Xinyu Li’s dissertation (2024) examined the post-fire vegetation Recovery and Plant-Pollinator Interactions in Southern California Ecosystem and concluded that fire caused an evidence shift in costal environment composition to make way for more flowering plants. After fire, there was an increase in flower abundance and diversity and impacted the pollinator population in the same way. There is strong evidence proving our hypothesis in the southern California environment but now we’d like to use similar methodologies to examine this issue in the meadows of Oregon.
+
+The lookout fire occurred on Aug 5 2023 so any data after that for that year does not exist . To supplement limited 2023 data, will be using the 2022 data as well in the ‘pre-fire’ category. We will also be using years 2024 and 2025 as our ‘post-fire’ category, all with the “veg” data set. The [spec.net](http://spec.net) data is limited up to \_\_\_ of 2025 because not all of the pollinator species have been identified yet.
+
+Our purpose is to see how landscape composition, specifically meadows, change at the hand of fire and how this effects biodiversity of the region. As seen in Yaekle et al 2014, a larger amount of biodiversity yield more redundancy in ecological niches and this a more stable ecosystem overall. There is evidence of fire improving conditions for bee habitat success. (Burkle et al., 2019) This study aims to understand how landscapes rebuild themselves after disturbances in order to instill practices that will suit their organic regeneration. We will compare plant composition of meadow sites before and after the Lookout Fire to investigate its process of regeneration to see if fire promotes higher levels of plant and bee biodiversity.
+
+Our research questions are: How does the interaction between abundance/species riches of meadows and fire regime modulate the recovery of pollinator and plant biodiversity in post-fire meadow habitats? And, how do changes in plant community composition and floral trait diversity following fires affect the composition of pollinator communities? Our null hypothesis is: Fire does not affect native and invasive plant/bee species composition post-fire and our alternative hypothesis is: Fire perpetuates native species turnover post-fire by clearing invasive and fire-vulnerable species
+
+# Dataset Identification
+
+-   Dataset A (veg.Rdata):
+    -   collector: Ponisio Lab
+    -   methods: counted stocks (individual stick portion) and counted blooms for estimate for flower abundance
+    -   columns/units:
+-   Dataset B (spec_net.Rdata):
+    -   collector: Ponisio Lab
+    -   methods:
+    -   columns/units:
+-   OBA → transformed to … (plan and rationale) …
+l 1
+both (methods) - from areas lots 15 min watches, every time interaction took place, took notes
+
+-   spatial data
+
+# Workflow Plan
+
+## “spec_net”
+
+-   categorize species into invasive/native
+    -   native_spec \< - c( “Bombus mixus”, “Osmia”, “Colletes simulans”)
+        -   Bombus mixus - fuzzy-horned bumblebee
+        -   Genus osmia - mason bees
+        -   Colletes simulans - spine-shouldered cellophane bee
+    -   non_native_spec \< - c( “apis mellifera”)
+        -   apis mellifera - european honey bees
+
+```{r}
+# Step 1: Define species groups
+native_species <- c("Bombus mixus", "Osmia", "Colletes simulans")
+honeybee_species <- "apis mellifera"
+
+# Step 2: Filter spec.net for those species
+BDF <- spec.net[spec.net$GenusSpecies %in% c(native_species, honeybee_species), ]
+
+# Step 3: Add a new column labeling native bees vs honeybee
+BDF$bee_group <- ifelse(BDF$GenusSpecies %in% native_species,
+                        "native_bees",
+                        "apis_mellifera")
+
+# Step 4: Drop unwanted columns (47:61 and 85:148)
+BDF <- BDF[, -c(47:61, 85:148)]
+
+# Step 5: Rename columns 62:84 as "spec_interaction"
+# If you want them all to share the same name:
+colnames(BDF)[62:84] <- "spec_interaction"
+
+# If you prefer unique names:
+# colnames(BDF)[62:84] <- paste0("spec_interaction_", 1:23)
+
+# Check the result
+str(BDF)
+head(BDF)
+```
+
+-   drop: col 47-61
+
+-   use col: 62,84 → spec interaction
+
+-   col: 85-148 → summaries, drop parasite data
+
+-   figure out what specific data we DO want to use ( 3 and 3?) → use network metrics to figure out most pop/inlfuenctial spec (spec level metrics) - degree of centrality or species strenght (how dependent other species are on that one) - check out last weeks demo
+
+```{r}
+# Drop columns 47:61 and 85:148
+spec.net_clean <- spec.net[, -c(47:61, 85:148)]
+
+# Rename columns 62:84 to "spec_interaction"
+colnames(spec.net_clean)[62:84] <- "spec_interaction"
+
+# Quick check
+str(spec.net_clean)        # see structure
+head(spec.net_clean[, 60:85])  # preview around the renamed block
+
+```
+
+## “veg"
+
+-   categorize species into invasive/native → validate with Poniso team (Nicole)? OR literature → Use oregonflora
+    -   non_native_veg \<- c( “*Rumex acetosella*”, “*Hypericum perforatum*”, “*Senecio vulgaris*")
+        -   Rumex acetosella
+        -   Hypericum perforatum
+        -   Senecio vulgaris
+    -   native_veg \<- c( “*Achillea millefolium*”, “*Lupinus laxiflorus*”, “*Phacelia hastata*")
+        -   Achillea millefolium
+        -   Lupinus laxiflorus - tailcup lupine
+        -   Phacelia hastata
+
+```{r}
+
+```
+
+### Aggregations/derivations: …
+
+-   calculate abundance for **pre and post fire**
+    -   total number of flowering (veg) - native and non-native
+    -   total number of pollinators (spec.net) - native and non-native
+
+### Functions/loops (inputs → outputs):
+
+-   use loops or functions to create plot to generate plot for pre and post fire
+    -   pre fire - plot veg diversity and pollinator diversity
+    -   post fire - plot veg diversity and pollinator diversity
+        -   → compare change between two
+
+### Statistical test + programmatic implementation:
+
+Lookout Fire happened aug 5 2023, data after aug 2023 for 2023 set no use
+
+1.  “veg” → years 2022, 2023 pre-fire and full 2024,2025 post-fire (drop unknown)
+    1.  A/B testing with acknowledgment to the restriction to our dataset (fire disruption)
+    2.  using data→ “vegdiversity”, “vegricheness”, vegabundance”
+        1.  AB testing, group 1 - pre/post
+            -   randomize and see if plant comp is different
+
+                col 1 - pre fire
+
+                col 2 - post fire
+
+            -   randomize two col and see if B diversity changes and diff from null → if diff from null then there IS sig change pre and post
+
+            -   do 1000 random
+2.  “[spec.net](http://spec.net)” → frequency of interaction, comapre pre and post, network data visualization, use full 2024 data for spec
+    1.  want to calculate floral abundance of pre and post
+    2.  create pollinator network
+    3.  calculate diversity (col exists in spec.net)
+        1.  look in github/cascademeadows/data prep/ specimensprep/
+            1.  species level insect data/ site bee diversity (uses pacakge vegan, function diversity )
+                1.  line \~780, and line \~292
+3.  maps → satalite imagery as overlay
+    1.  have lat/long, plan on doing map with sites → just using as supporting graphics to mark burned and unburned sites
+
+### Planned visualizations/tables: …
+
+visualize → distribution of random vs observed - null - histogram, add line to = observed values
+
+visualize → network of picked pollinator interactions
+
+visualize → map compare pre and post fire (looking for visual fire/scorched land differneces). using lat/long from spec.data
+
+-   Represent fire-resistant species → may be indicator at what will grow better post fire
+    -   diff species and their indiv growth growth pre-fire
+    -   species growth post-fire
+
+summary of plant species → bar plot of species (abundance)
+
+highlight(barplot) abundance change pre/ post
+
+**Visualizations (Notes):**
+
+-   Spacial data pre and post-fire (lat/long/CRN from spec.data
+-   bee atlas-like network - use class demo, wk 6
+-   Plotting datapoints from dataset → mix with spacial data \~wk8?
+    -   Represent fire-resistant species → may be indicator at what will grow better post fire
+        -   diff species and their indiv growth growth pre-fire
+        -   species growth post-fire
+    -   *Represent invasive species infringement? (maybe)*
+-   Plant species interactions pre and post fire
+    -   add pollinators of time
+
+### Risks & mitigations: …
+
+1.  need to identify/ catagorize known species to be invasive and/or native within data set
+2.  cannot use 2025 spec data
+3.  2024 incomplete sampling year for both (only 2 rounds instead of 5)
