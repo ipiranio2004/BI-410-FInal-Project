@@ -1,0 +1,108 @@
+---
+title: "Final_Project_Data_Manip"
+output: html_notebook
+---
+NEED LAT LONG FROM SPEC DATA 
+```{r}
+install.packages("bipartite")
+library(tidyr)
+library(dplyr)
+load("spec_net.Rdata")
+load("veg.Rdata")
+```
+
+```{r}
+# GenusSpecies from spec.net (pollinators)
+native_poll <- c("Bombus mixtus", "Bombus melanopygus", "Bombus vosnesenskii",
+                    "Bombus vancouverensis", "Bombus griseocollis", "Bombus californicus",
+                    "Bombus appositus", "Bombus insularis", "Bombus nevadensis",
+                    "Bombus occidentalis", "Bombus flavifrons", "Bombus fernaldae",
+                    "Bombus suckleyi", "Bombus morrisoni", "Bombus sitkensis",
+                    "Colletes simulans", "Osmia sp.", "Chelostoma phaceliae",
+                    "Hoplitis fulgida", "Hoplitis albifrons", "Hoplitis producta",
+                    "Megachile perihirta", "Megachile melanophaea", "Megachile brevis",
+                    "Megachile pugnata", "Megachile fidelis", "Megachile relativa",
+                    "Megachile angelarum", "Megachile subnigra", "Megachile mellitarsis",
+                    "Halictus rubicundus", "Halictus tripartitus", "Halictus farinosus",
+                    "Halictus ligatus", "Halictus confusus", "Lasioglossum titusi",
+                    "Lasioglossum nevadense", "Lasioglossum cordleyi", "Lasioglossum olympiae",
+                    "Andrena pertristis", "Andrena vicinoides", "Andrena columbiana",
+                    "Andrena scutellinitens", "Andrena nigrocaerulea", "Andrena prunorum",
+                    "Andrena melanochroa", "Andrena topazana", "Andrena cupreotincta",
+                    "Agapostemon virescens", "Xylocopa californica", "Ceratina acantha",
+                    "Ceratina nanula", "Melissodes rivalis", "Melissodes microstictus",
+                    "Nomada sp.", "Sphecodes sp.", "Dufourea calochorti", "Dufourea versatilis",
+                    "Dufourea campanulae", "Anthidium mormonum", "Anthidium utahense")
+
+non_native_poll <- c("Apis mellifera", "Anthidium manicatum")
+
+#PlantGenusSpecies from veg (plants)
+native_veg <- c("Delphinium menziesii", "Aquilegia formosa", "Collinsia parviflora",
+                "Vicia americana", "Lupinus laxiflorus", "Achillea millefolium",
+                "Angelica arguta", "Erysimum capitatum", "Senecio integerrimus",
+                "Ligusticum grayi", "Polemonium carneum", "Solidago canadensis",
+                "Cirsium callilepis", "Eriophyllum lanatum", "Mimulus rubellus",
+                "Gayophytum humile", "Potentilla gracilis", "Lewisia triphylla",
+                "Gilia capitata", "Phlox gracilis", "Lathyrus nevadensis",
+                "Eriogonum compositum", "Castilleja hispida", "Zigadenus venenosus",
+                "Eriogonum umbellatum", "Epilobium oregonense", "Phacelia hastata",
+                "Penstemon procerus", "Rosa gymnocarpa", "Symphoricarpos mollis",
+                "Mimulus guttatus", "Berberis aquifolium", "Sedum oregonense",
+                "Fragaria virginiana", "Arctostaphylos nevadensis", "Madia minima",
+                "Holodiscus discolor", "Rubus parviflorus", "Tiarella trifoliata",
+                "Viola glabella", "Galium oreganum", "Rainiera stricta",
+                "Trillium ovatum", "Vaccinium membranaceum", "Lupinus latiflorus",
+                "Iris chrysophylla", "Dichelostemma congestum", "Chamerion angustifolium",
+                "Erythronium grandiflorum", "Xerophyllum tenax", "Lupinus polyphyllus",
+                "Phacelia nemoralis", "Ceanothus velutinus", "Tolmiea menziesii",
+                "Lilium columbianum", "Sedum oreganum", "Sorbus sitchensis",
+                "Mahonia nervosa", "Ranunculus uncinatus", "Nemophila parviflora",
+                "Ribes viscosissimum")
+
+# Non-native plants from veg data 
+non_native_veg <- c("Rumex acetosella", "Hypericum perforatum", "Taraxacum officinale",
+                    "Galium aparine", "Cerastium arvense", "Vicia sativa",
+                    "Prunella vulgaris", "Chrysanthemum leucanthemum",
+                    "Hypochaeris radicata", "Veronica serpyllifolia")
+
+```
+
+```{r}
+#group by - site, year, sampling round
+
+```
+
+```{r}
+# then calculate abund and diversity (already calced, just sum and show)
+```
+
+
+```{r}
+# use unique site data -> select and drop all not need col 
+# unique () to create data set 
+#Species data set - site, year, sampling round, diversity, abund, rareified richness(rawrB richness), shannons index (H2), simpsons diversity
+ ---- # do this for spec.net then veg
+
+
+```
+
+
+```{r}
+#filter by years 2022-2023 = pre fire, 2024-2025 = post fire 
+```
+
+```{r}
+#make df, pre and post -> join onto unique site data set 
+```
+
+
+```{r}
+#design simulation -> AB test, once for poll and once for plants (randomization is the same??
+```
+
+
+```{r}
+#netowrk colored by native/nonnative pre and post 
+
+```
+
