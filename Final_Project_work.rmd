@@ -4,19 +4,12 @@ output: html_notebook
 ---
 NEED LAT LONG FROM SPEC DATA 
 ```{r}
-install.packages("bipartite")
-install.packages("tidyr")
-install.packages("dplyr")
-library(tidyr)
-library(dplyr)
+library(tidyverse)
 load("spec_net.Rdata")
 load("veg.Rdata")
 ```
 
 ```{r}
-spacial_df <- spec.net[, c(37, 38)]
-print(spacial_df)
-
 #cleaning data
 # from [spec.data](http://spec.data) 
 # 
@@ -24,7 +17,9 @@ print(spacial_df)
 # - spec interaction-> WANT col 62 ="degree", 64 = "species.strength" 81 = "d" 84 = "rare.degree", 125 =  "SiteBeeAbundance" 126 = "SiteBeeRichness", 127=  "SiteBeeDiversity" 149 = "PollRichness" 150 = "PollAbundance" 151 = "PollDiversity", 157 = "VegAbundance", 158 = "VegRichness",  159 = "VegDiversity"
 #lat = col 37, long = col 38
 clean_spec.net <- spec.net %>%
-  select(-c(4:9, 12:36, 39:43, 45:61, 63, 65:80, 82:83, 85:124, 128:148, 152:156))
+  select("Site","SampleRound","Year", "GenusSpecies" ,"PlantGenusSpecies","species.strength", "d", "rare.degree", "SiteBeeAbundance", "SiteBeeRichness", "SiteBeeDiversity", "PollRichness", "PollAbundance","PollDiversity","VegAbundance", "VegRichness", "VegDiversity", "Lat", "Long")
+    
+    #-c(4:9, 12:36, 39:43, 45:61, 63, 65:80, 82:83, 85:124, 128:148, 152:156))
 #from veg
 #drop: col 1:6, 
 clean_veg <- veg %>%
@@ -87,25 +82,55 @@ non_native_veg <- c("Rumex acetosella", "Hypericum perforatum", "Taraxacum offic
                     "Prunella vulgaris", "Chrysanthemum leucanthemum",
                     "Hypochaeris radicata", "Veronica serpyllifolia")
 
+
+#and col with mutate for non-native with spec.net
+
+clean_spec.net <- clean_spec.net %>%
+  mutate(non_native_plant= ifelse(PlantGenusSpecies %in% non_native_veg, "non-native", "native"),
+         non_native_bee= ifelse(GenusSpecies %in% non_native_poll, "non-native", "native"))
+
+unique(clean_spec.net$PlantGenusSpecies[clean_spec.net$non_native_plant == "non-native"])
+unique(clean_spec.net$GenusSpecies[clean_spec.net$non_native_bee == "non-native"])
+
+#creating spacial data frame to plot onto satellite imagery 
+spacial_df <- clean_spec.net[, c("Lat", "Long", "non_native_plant", "Year")]%>%
+  filter(non_native_plant== "non-native")
+spacial_df 
+
+#filter by years 2022-2023 = pre fire, 2024-2025 = post fire 
+spacial_pre_fire <- spacial_df%>%
+  filter(Year >= 2022 & Year <= 2023 )
+spacial_pre_fire
+unique(spacial_pre_fire$Year)
+
+spacial_post_fire <-spacial_df%>%
+  filter(Year >= 2024 & Year <= 2025)
+spacial_post_fire
+unique(spacial_post_fire$Year)
+
+
 ```
 
 ```{r}
-#group by - site, year, sampling round
-clean_veg %>%
-  group_by("Site", "Year", "SampleRound")
-
+#group by - site, year, sampling round ...
+clean_spec.net  %>%
+  group_by(Site, Year, SampleRound, non_native_bee )%>%
+  summarize(BeeAbundance = n()
+            )
+#must use function with summarize 
 ```
 
 ```{r}
-clean_spec.net %>%
-  group_by("Site", "Year", "SampleRound")
+#AB testing - ave abund over the year for plants
+#ave of sampling round of abund 
+#AB test would shuffle ave abund of years of pre and post 
 ```
 
 
 ```{r}
 # then calculate abund and diversity (already calced, just sum and show)
-clean_spec.net%>%
-  select("PollRichness","PollAbundance","PollDiversity")%>%
+species_interact <- clean_spec.net%>%
+  select("GenusSpecies", "PollRichness","PollAbundance","PollDiversity")%>%
   print()
 
 ```
@@ -118,6 +143,8 @@ clean_spec.net%>%
 # unique () to create data set 
 #Species data set - site, year, sampling round, diversity, abund, rareified richness(rawrB richness), shannons index (H2), simpsons diversity
  ---- # do this for spec.net then veg...
+  
+# - spec interaction-> WANT col 62 ="degree", 64 = "species.strength" 81 = "d" 84 = "rare.degree", 125 =  "SiteBeeAbundance" 126 = "SiteBeeRichness", 127=  "SiteBeeDiversity" 149 = "PollRichness" 150 = "PollAbundance" 151 = "PollDiversity", 157 = "VegAbundance", 158 = "VegRichness",  159 = "VegDiversity"
 
 
 ```
@@ -125,6 +152,17 @@ clean_spec.net%>%
 
 ```{r}
 #filter by years 2022-2023 = pre fire, 2024-2025 = post fire 
+pre_fire_spec <- clean_spec.net%>%
+  group_by("Year"=2022 & "Year"=2023)
+
+post_fire_spec <- clean_spec.net%>%
+  group_by("Year"= 2024  & "Year"=2025)
+
+pre_fire_veg <- clean_veg%>%
+  group_by("Year"=2022 & "Year"=2023)
+
+post_fire_veg <- clean_veg%>%
+  group_by("Year"= 2024  & "Year"=2025)
 ```
 
 ```{r}
