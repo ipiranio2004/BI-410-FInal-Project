@@ -21,11 +21,10 @@ load("veg.Rdata")
 clean_spec.net <- spec.net %>%
   select("Site","SampleRound","Year", "GenusSpecies" ,"PlantGenusSpecies","species.strength", "d", "rare.degree", "SiteBeeAbundance", "SiteBeeRichness", "SiteBeeDiversity", "PollRichness", "PollAbundance","PollDiversity","VegAbundance", "VegRichness", "VegDiversity", "Lat", "Long")
     
-    #-c(4:9, 12:36, 39:43, 45:61, 63, 65:80, 82:83, 85:124, 128:148, 152:156))
-#from veg
 #drop: col 1:6, 
 clean_veg <- veg %>%
   select(-c(1:6))
+### use to make histogram (barplot) for plant abundance  - top 4 non native, top 4 native 
 
 ```
 
@@ -90,31 +89,37 @@ non_native_veg <- c("Rumex acetosella", "Hypericum perforatum", "Taraxacum offic
 
 clean_spec.net <- clean_spec.net %>%
   mutate(non_native_plant= ifelse(PlantGenusSpecies %in% non_native_veg, "non-native", "native"),
-         non_native_bee= ifelse(GenusSpecies %in% non_native_poll, "non-native", "native"))
+         non_native_bee= ifelse(GenusSpecies %in% non_native_poll, "non-native", "native"))%>%
+  filter(Year == 2022:2025)%>% 
+  mutate(group = ifelse(Year >= 2022 & Year <= 2023, "pre-fire", "post-fire"))
+    
 
 unique(clean_spec.net$PlantGenusSpecies[clean_spec.net$non_native_plant == "non-native"])
 unique(clean_spec.net$GenusSpecies[clean_spec.net$non_native_bee == "non-native"])
 
-
+#pre-fire filter(Year >= 2022 & Year <= 2023 )
+#post-fire  filter(Year >= 2024 & Year <= 2025)
+clean_spec.net
 ```
 
 
 ```{r}
 #creating spacial data frame to plot onto satellite imagery 
-spacial_df <- clean_spec.net[, c("Lat", "Long", "non_native_plant", "Year","Site")]%>%
-  filter(non_native_plant== "non-native")%>%
-   filter(Site == c("M2", "NE", "RP1","RP2", "LM", "LS"))
+spacial_df <- clean_spec.net[, c("Lat", "Long", "non_native_plant", "Year","Site")]
+ # filter(non_native_plant== "non-native")%>%
+ # filter(Site == c("M2", "NE", "RP1","RP2", "LM", "LS"))
+  #could use %in% also
 spacial_df 
 
 #filter by years 2022-2023 = pre fire, 2024-2025 = post fire 
-spacial_pre_fire <- spacial_df%>%
-  filter(Year >= 2022 & Year <= 2023 )
-spacial_pre_fire
-unique(spacial_pre_fire$Year)
-
-spacial_post_fire <-spacial_df%>%
-  filter(Year >= 2024 & Year <= 2025)
-spacial_post_fire
+# spacial_pre_fire <- spacial_df%>%
+#   filter(Year >= 2022 & Year <= 2023 )
+# spacial_pre_fire
+# unique(spacial_pre_fire$Year)
+# 
+# spacial_post_fire <-spacial_df%>%
+#   filter(Year >= 2024 & Year <= 2025)
+# spacial_post_fire
 
 
 #44.27913	-122.1516
@@ -122,22 +127,42 @@ spacial_post_fire
 #post-fire  filter(Year >= 2024 & Year <= 2025)
 
 # SITE WE WANT POST FIRE -> M2, NE, RP1,RP2, LM, LS
-
+#unique(spacial_df$Site)
 ```
 
 ```{r}
 #making new data frame for plants from clean_spec.net, include everything related to plants, drop otherwise. 
 #then make pre and post df for plants 
 
-plant_df <- data_frame(clean_spec.net)%>%
-  select("Site", "SampleRound", "Year","PlantGenusSpecies","Lat", "Long","non_native_plant")%>%
-  filter(non_native_plant== "non-native")%>%
-
+plant_df <-clean_spec.net%>%
+  select("Site", "SampleRound", "Year","PlantGenusSpecies", "non_native_plant", "group", "VegDiversity","VegAbundance")
 print(plant_df)
 
-#do we/should we sort by site at this point?
-#unique(plant_df$Site)
-#"CPB" "LS"  "NE"  "RP2" "CPM" "RP1" ### maybe burned sites 
+
+obs_means <- plant_df %>%
+  group_by(group) %>%
+  summarize(obs_veg_div = mean(VegDiversity))
+
+obs_veg_div<- obs_means$obs_veg_div[obs_means$group == "pre-fire"] - obs_means$obs_veg_div[obs_means$group == "post-fire"]
+obs_veg_div # = 0.07378341
+
+perm_once_blocked <- function(df) {
+  gp <- df$group
+  for (m in unique(df$Site)) {
+    idx <- which(df$Site == m)
+    gp[idx] <- sample(gp[idx], replace = FALSE)
+  }
+  mean(df$VegDiversity[gp == "pre-fire"]) - mean(df$VegDiversity[gp == "post-fire"])
+}
+
+B <- 5000
+vegD_perm <- replicate(B, perm_once_blocked(plant_df))
+
+# Two-sided permutation p-value
+pvalue_perm <- mean(abs(vegD_perm) >= abs(obs_veg_div))
+pvalue_perm # =  0.7442
+
+### make function for VegAbund, PollDiv, PollAbund
 
 # SITE WE WANT POST FIRE -> M2, NE, RP1,RP2, LM, LS
 
@@ -145,48 +170,15 @@ print(plant_df)
 ```
 
 ```{r}
-pol_df <- data_frame(clean_spec.net) %>%
-  select("Site","SampleRound", "Year", "GenusSpecies", "species.strength", "d", "rare.degree", "SiteBeeAbundance", "SiteBeeRichness", "SiteBeeDiversity", "Lat", "Long", "non_native_bee") %>%
-  filter(non_native_plant== "non-native")
+poll_df <- clean_spec.net %>%
+  select("Site","SampleRound", "Year", "GenusSpecies", "group", "non_native_bee","PollDiversity", "PollAbundance")
+poll_df
+
+### if needed
+#pre-fire filter(Year >= 2022 & Year <= 2023 )
+#post-fire  filter(Year >= 2024 & Year <= 2025)
 ```
 
-
-```{r}
-#group by - site, year, sampling round ...
-clean_spec.net  %>%
-  group_by(Site, Year, SampleRound, non_native_bee="non-native" )%>%
-  summarize(BeeAbundance = n()
-            )
-#must use function with summarize 
-```
-
-```{r}
-#AB testing - ave abund over the year for plants
-#ave of sampling round of abund 
-#AB test would shuffle ave abund of years of pre and post 
-```
-
-
-```{r}
-# then calculate abund and diversity (already calced, just sum and show)
-species_interact <- clean_spec.net%>%
-  select("GenusSpecies", "PollRichness","PollAbundance","PollDiversity", "Site")%>%
-  print()
-
-```
-
-
-```{r}
-# use unique site data -> select and drop all not need col 
-  unique(clean_spec.net$Site)
-# unique () to create data set 
-#Species data set - site, year, sampling round, diversity, abund, rareified richness(rawrB richness), shannons index (H2), simpsons diversity
- #---- # do this for spec.net then veg...
-  
-# - spec interaction-> WANT col 62 ="degree", 64 = "species.strength" 81 = "d" 84 = "rare.degree", 125 =  "SiteBeeAbundance" 126 = "SiteBeeRichness", 127=  "SiteBeeDiversity" 149 = "PollRichness" 150 = "PollAbundance" 151 = "PollDiversity", 157 = "VegAbundance", 158 = "VegRichness",  159 = "VegDiversity"
-
-
-```
 
 
 ```{r}
@@ -196,20 +188,5 @@ species_interact <- clean_spec.net%>%
 filter(Year >= 2022 & Year <= 2023 )
 #post
 filter(Year >= 2024 & Year <= 2025)
-```
-
-```{r}
-#make df, pre and post -> join onto unique site data set 
-```
-
-
-```{r}
-#design simulation -> AB test, once for poll and once for plants (randomization is the same??
-```
-
-
-```{r}
-#netowrk colored by native/nonnative pre and post 
-
 ```
 
