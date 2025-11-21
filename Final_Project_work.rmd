@@ -5,12 +5,14 @@ output: html_notebook
 NEED LAT LONG FROM SPEC DATA 
 ```{r}
 library(tidyverse)
+library(tibble)
 load("spec_net.Rdata")
 load("veg.Rdata")
 ```
 
 ```{r}
 #cleaning data
+
 # from [spec.data](http://spec.data) 
 # 
 # - drop: col 4:9, col 12:36 col 39:43 col 45:61, 63, 65:80, 82:83, 85:124, 128:148, 152:156, 
@@ -81,8 +83,9 @@ non_native_veg <- c("Rumex acetosella", "Hypericum perforatum", "Taraxacum offic
                     "Galium aparine", "Cerastium arvense", "Vicia sativa",
                     "Prunella vulgaris", "Chrysanthemum leucanthemum",
                     "Hypochaeris radicata", "Veronica serpyllifolia")
+```
 
-
+```{r}
 #and col with mutate for non-native with spec.net
 
 clean_spec.net <- clean_spec.net %>%
@@ -92,9 +95,15 @@ clean_spec.net <- clean_spec.net %>%
 unique(clean_spec.net$PlantGenusSpecies[clean_spec.net$non_native_plant == "non-native"])
 unique(clean_spec.net$GenusSpecies[clean_spec.net$non_native_bee == "non-native"])
 
+
+```
+
+
+```{r}
 #creating spacial data frame to plot onto satellite imagery 
-spacial_df <- clean_spec.net[, c("Lat", "Long", "non_native_plant", "Year")]%>%
-  filter(non_native_plant== "non-native")
+spacial_df <- clean_spec.net[, c("Lat", "Long", "non_native_plant", "Year","Site")]%>%
+  filter(non_native_plant== "non-native")%>%
+   filter(Site == c("M2", "NE", "RP1","RP2", "LM", "LS"))
 spacial_df 
 
 #filter by years 2022-2023 = pre fire, 2024-2025 = post fire 
@@ -106,15 +115,46 @@ unique(spacial_pre_fire$Year)
 spacial_post_fire <-spacial_df%>%
   filter(Year >= 2024 & Year <= 2025)
 spacial_post_fire
-unique(spacial_post_fire$Year)
+
+
+#44.27913	-122.1516
+#pre-fire filter(Year >= 2022 & Year <= 2023 )
+#post-fire  filter(Year >= 2024 & Year <= 2025)
+
+# SITE WE WANT POST FIRE -> M2, NE, RP1,RP2, LM, LS
+
+```
+
+```{r}
+#making new data frame for plants from clean_spec.net, include everything related to plants, drop otherwise. 
+#then make pre and post df for plants 
+
+plant_df <- data_frame(clean_spec.net)%>%
+  select("Site", "SampleRound", "Year","PlantGenusSpecies","Lat", "Long","non_native_plant")%>%
+  filter(non_native_plant== "non-native")%>%
+
+print(plant_df)
+
+#do we/should we sort by site at this point?
+#unique(plant_df$Site)
+#"CPB" "LS"  "NE"  "RP2" "CPM" "RP1" ### maybe burned sites 
+
+# SITE WE WANT POST FIRE -> M2, NE, RP1,RP2, LM, LS
 
 
 ```
 
 ```{r}
+pol_df <- data_frame(clean_spec.net) %>%
+  select("Site","SampleRound", "Year", "GenusSpecies", "species.strength", "d", "rare.degree", "SiteBeeAbundance", "SiteBeeRichness", "SiteBeeDiversity", "Lat", "Long", "non_native_bee") %>%
+  filter(non_native_plant== "non-native")
+```
+
+
+```{r}
 #group by - site, year, sampling round ...
 clean_spec.net  %>%
-  group_by(Site, Year, SampleRound, non_native_bee )%>%
+  group_by(Site, Year, SampleRound, non_native_bee="non-native" )%>%
   summarize(BeeAbundance = n()
             )
 #must use function with summarize 
@@ -130,7 +170,7 @@ clean_spec.net  %>%
 ```{r}
 # then calculate abund and diversity (already calced, just sum and show)
 species_interact <- clean_spec.net%>%
-  select("GenusSpecies", "PollRichness","PollAbundance","PollDiversity")%>%
+  select("GenusSpecies", "PollRichness","PollAbundance","PollDiversity", "Site")%>%
   print()
 
 ```
@@ -138,11 +178,10 @@ species_interact <- clean_spec.net%>%
 
 ```{r}
 # use unique site data -> select and drop all not need col 
-clean_spec.net%>%
-  unique("Site")
+  unique(clean_spec.net$Site)
 # unique () to create data set 
 #Species data set - site, year, sampling round, diversity, abund, rareified richness(rawrB richness), shannons index (H2), simpsons diversity
- ---- # do this for spec.net then veg...
+ #---- # do this for spec.net then veg...
   
 # - spec interaction-> WANT col 62 ="degree", 64 = "species.strength" 81 = "d" 84 = "rare.degree", 125 =  "SiteBeeAbundance" 126 = "SiteBeeRichness", 127=  "SiteBeeDiversity" 149 = "PollRichness" 150 = "PollAbundance" 151 = "PollDiversity", 157 = "VegAbundance", 158 = "VegRichness",  159 = "VegDiversity"
 
@@ -152,17 +191,11 @@ clean_spec.net%>%
 
 ```{r}
 #filter by years 2022-2023 = pre fire, 2024-2025 = post fire 
-pre_fire_spec <- clean_spec.net%>%
-  group_by("Year"=2022 & "Year"=2023)
 
-post_fire_spec <- clean_spec.net%>%
-  group_by("Year"= 2024  & "Year"=2025)
-
-pre_fire_veg <- clean_veg%>%
-  group_by("Year"=2022 & "Year"=2023)
-
-post_fire_veg <- clean_veg%>%
-  group_by("Year"= 2024  & "Year"=2025)
+#pre
+filter(Year >= 2022 & Year <= 2023 )
+#post
+filter(Year >= 2024 & Year <= 2025)
 ```
 
 ```{r}
